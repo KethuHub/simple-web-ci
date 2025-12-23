@@ -1,26 +1,43 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "simple-web:latest"
+        CONTAINER_NAME = "simple-web-container"
+        HOST_PORT = "8081"
+        CONTAINER_PORT = "80"
+    }
+
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
-                echo 'Checking out code from GitHub'
+                echo 'Pulling code from GitHub'
                 checkout scm
             }
         }
 
-        stage('Verify Files') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Listing workspace files'
-                bat 'dir'
+                echo 'Building Docker image from Dockerfile'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Deploy to IIS') {
+        stage('Stop Old Container') {
             steps {
-                echo 'Deploying index.html to IIS'
+                echo 'Stopping old container if it exists'
                 bat '''
-                copy /Y "%WORKSPACE%\\index.html" "C:\\inetpub\\wwwroot\\index.html"
+                docker rm -f %CONTAINER_NAME% || exit 0
+                '''
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                echo 'Running new Docker container'
+                bat '''
+                docker run -d -p %HOST_PORT%:%CONTAINER_PORT% --name %CONTAINER_NAME% %IMAGE_NAME%
                 '''
             }
         }
@@ -28,10 +45,10 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment completed successfully'
+            echo 'Docker container deployed successfully'
         }
         failure {
-            echo 'Deployment failed'
+            echo 'Pipeline failed'
         }
     }
 }
