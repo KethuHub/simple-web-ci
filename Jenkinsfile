@@ -4,27 +4,34 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/YOUR_USERNAME/simple-web-ci.git', branch: 'main'
+                echo 'Checking out code from GitHub'
+                checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Verify Files') {
             steps {
-                echo 'Building project...'
-                sh 'ls -l'
+                echo 'Listing workspace files'
+                bat 'dir'
             }
         }
 
-        stage('Test') {
+        stage('Deploy to IIS') {
             steps {
-                echo 'No tests configured'
+                echo 'Deploying index.html to IIS'
+                bat '''
+                copy /Y "%WORKSPACE%\\index.html" "C:\\inetpub\\wwwroot\\index.html"
+                '''
             }
         }
+    }
 
-        stage('Deploy') {
-            steps {
-                echo 'Deploy stage completed'
-            }
+    post {
+        success {
+            echo 'Deployment completed successfully'
+        }
+        failure {
+            echo 'Deployment failed'
         }
     }
 }
